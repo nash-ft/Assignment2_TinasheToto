@@ -12,7 +12,8 @@ app.get('/', (req, res) => {
         <a href="/about?color=orange">About (Orange)</a><br>
         <a href="/cat/1">Cat 1</a><br>
         <a href="/cat/2">Cat 2</a><br>
-        <a href="/cat/3">Cat 3?</a><br>`);
+        <a href="/cat/3">Cat 3?</a><br>
+        <a href="/dne">Broken Link (goes to 404 page)</a>`);
 });
 
 app.get('/about', (req,res) => {
@@ -37,6 +38,11 @@ app.get('/cat/:id', (req,res) => {
 });
 
 app.use(express.static(__dirname + "/public"));
+
+app.use((req,res) => {
+	res.status(404);
+	res.send("Page not found - 404");
+});
 
 // Start server
 app.listen(PORT, () => {
