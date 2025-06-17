@@ -1,3 +1,4 @@
+require('dotenv').config(); 
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
@@ -12,13 +13,13 @@ const expireTime = 24 * 60 * 60 * 1000; //expires after 1 day  (hours * minutes 
 var users = []; 
 
 /* secret information section */
-const mongodb_host = "YourMongoDBHost"; //ex: cluster0.1234abc.mongodb.net
-const mongodb_user = "YourMongoDBUser";
-const mongodb_password = "YourPasswordGoesHere";
-const mongodb_database = "sessions"; 
-const mongodb_session_secret = "d74da16f-3a58-4a42-9bf9-2f8ab0c393f0";
+const mongodb_host = process.env.MONGODB_HOST;
+const mongodb_user = process.env.MONGODB_USER;
+const mongodb_password = process.env.MONGODB_PASSWORD;
+const mongodb_database = process.env.MONGODB_DATABASE;
+const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
 
-const node_session_secret = "718180b9-c111-4291-a364-d5391fc974b2"; //Generate your own GUID and put it here
+const node_session_secret = process.env.NODE_SESSION_SECRET;
 /* END secret section */
 
 app.use(express.urlencoded({extended: false}));
