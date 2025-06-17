@@ -1,14 +1,38 @@
 const express = require('express');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const bcrypt = require('bcrypt');
 const saltRounds = 12;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const expireTime = 24 * 60 * 60 * 1000; //expires after 1 day  (hours * minutes * seconds * millis)
 
 //Users and Passwords (in memory 'database')
 var users = []; 
 
+/* secret information section */
+const mongodb_host = "YourMongoDBHost"; //ex: cluster0.1234abc.mongodb.net
+const mongodb_user = "YourMongoDBUser";
+const mongodb_password = "YourPasswordGoesHere";
+const mongodb_database = "sessions"; 
+
+const node_session_secret = "718180b9-c111-4291-a364-d5391fc974b2"; //Generate your own GUID and put it here
+/* END secret section */
+
 app.use(express.urlencoded({extended: false}));
+
+var mongoStore = MongoStore.create({
+	mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database}`,
+})
+
+app.use(session({ 
+    secret: node_session_secret,
+	store: mongoStore, //default is memory store 
+	saveUninitialized: false, 
+	resave: true
+}
+));
 
 // Routes
 app.get('/', (req, res) => {
@@ -124,6 +148,10 @@ app.post('/loggingin', (req,res) => {
     for (i = 0; i < users.length; i++) {
         if (users[i].username == username) {
             if (bcrypt.compareSync(password, users[i].password)) {
+                req.session.authenticated = true;
+                req.session.username = username;
+                req.session.cookie.maxAge = expireTime;
+
                 res.redirect('/loggedIn');
                 return;
             }
@@ -135,6 +163,9 @@ app.post('/loggingin', (req,res) => {
 });
 
 app.get('/loggedin', (req,res) => {
+    if (!req.session.authenticated) {
+        res.redirect('/login');
+    }
     var html = `
     You are logged in!
     `;
