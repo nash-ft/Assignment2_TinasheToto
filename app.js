@@ -16,6 +16,7 @@ const mongodb_host = "YourMongoDBHost"; //ex: cluster0.1234abc.mongodb.net
 const mongodb_user = "YourMongoDBUser";
 const mongodb_password = "YourPasswordGoesHere";
 const mongodb_database = "sessions"; 
+const mongodb_session_secret = "d74da16f-3a58-4a42-9bf9-2f8ab0c393f0";
 
 const node_session_secret = "718180b9-c111-4291-a364-d5391fc974b2"; //Generate your own GUID and put it here
 /* END secret section */
@@ -24,7 +25,10 @@ app.use(express.urlencoded({extended: false}));
 
 var mongoStore = MongoStore.create({
 	mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database}`,
-})
+	crypto: {
+		secret: mongodb_session_secret
+	}
+});
 
 app.use(session({ 
     secret: node_session_secret,
