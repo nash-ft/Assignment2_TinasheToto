@@ -29,6 +29,7 @@ const node_session_secret = process.env.NODE_SESSION_SECRET;
 const {database} = include('databaseConnection');
 const userCollection = database.db(mongodb_user_database).collection('users');
 
+app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: false}));
 app.use(express.json());
 
@@ -109,21 +110,7 @@ app.post('/nosql-injection', async (req,res) => {
 
 // Routes
 app.get('/', (req, res) => {
-    res.send(`
-        <h1>Hello, World!</h1>
-        <a href="/about?color=blue">About (Blue)</a><br>
-        <a href="/about?color=orange">About (Orange)</a><br>
-        <a href="/cat/1">Cat 1</a><br>
-        <a href="/cat/2">Cat 2</a><br>
-        <a href="/cat/3">Cat 3?</a><br>
-        <a href="/dne">Broken Link (goes to 404 page)</a><br>
-        <a href="/contact">Contact Form</a><br>
-        <a href="/createUser">Create User</a><br>
-        <a href="/login">Login</a><br>
-        <a href="/loggedin">Logged In Page</a><br>
-        <a href="/nosql-injection">NoSQL Injection Example</a><br>
-        <a href="/logout">Logout</a><br>
-    `);
+    res.render('index');
 });
 
 app.get('/about', (req,res) => {
