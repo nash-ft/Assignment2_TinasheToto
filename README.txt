@@ -1,3 +1,17 @@
+v1.10 - MongoDB for creating users and login.
+=============================================
+Adding another MongoDB database for the users and BCrypted passwords.
+We are finally removing the in-memory 'database'.
+This will ensure our user list persists when the server restarts.
+
+We will keep our session database session from our user database.
+This is why we have separate environment variables
+MONGODB_SESSION_DATABASE for storing session information 
+AND 
+MONGODB_USER_DATABASE for users and BCrypted passwords. 
+
+We will be using both Joi and MongoDB Sanitizer to prevent NoSQL Injection attacks.
+
 v1.9 - Keeping secrets, secret with dotenv
 ==========================================
 It's time we separate our passwords and secret keys from our code.
