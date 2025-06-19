@@ -224,6 +224,12 @@ app.get('/logout', (req,res) => {
     res.render('loggedout');
 });
 
+app.get('/admin', async (req,res) => {
+    const result = await userCollection.find().project({username: 1, _id: 1}).toArray();
+
+    res.render("admin", {users: result});
+});
+
 app.use(express.static(__dirname + "/public"));
 
 app.use((req,res) => {
