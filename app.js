@@ -68,6 +68,24 @@ function sessionValidation(req,res,next) {
     }
 }
 
+function isAdmin(req) {
+    if (req.session.user_type == 'admin') {
+        return true;
+    }
+    return false;
+}
+
+function adminAuthorization(req, res, next) {
+    if (!isAdmin(req)) {
+        res.status(403);
+        res.render("errorMessage", {error: "Not Authorized"});
+        return;
+    }
+    else {
+        next();
+    }
+}
+
 app.get('/nosql-injection', (req,res) => {
     res.send(`
         noSQL injection example:
@@ -180,7 +198,7 @@ app.post('/submitUser', async (req,res) => {
 
     var hashedPassword = await bcrypt.hash(password, saltRounds);
 	
-	await userCollection.insertOne({username: username, password: hashedPassword});
+	await userCollection.insertOne({username: username, password: hashedPassword, user_type: 'user'});
 	console.log("Inserted user");
 
     res.render('submitUser');
@@ -202,7 +220,7 @@ app.post('/loggingin', async (req,res) => {
         return;
 	}
 
-	const result = await userCollection.find({username: username}).project({username: 1, password: 1, _id: 1}).toArray();
+	const result = await userCollection.find({username: username}).project({username: 1, password: 1, user_type: 1, _id: 1}).toArray();
 
 	console.log(result);
 	if (result.length != 1) {
@@ -214,6 +232,7 @@ app.post('/loggingin', async (req,res) => {
 		console.log("correct password");
 		req.session.authenticated = true;
 		req.session.username = username;
+        req.session.user_type = result[0].user_type;
 		req.session.cookie.maxAge = expireTime;
 
 		res.redirect('/loggedIn');
@@ -245,7 +264,7 @@ app.get('/logout', (req,res) => {
     res.render('loggedout');
 });
 
-app.get('/admin', sessionValidation, async (req,res) => {
+app.get('/admin', sessionValidation, adminAuthorization, async (req,res) => {
     const result = await userCollection.find().project({username: 1, _id: 1}).toArray();
 
     res.render("admin", {users: result});
