@@ -1,0 +1,23 @@
+<%- include("templates/header") %> 
+    <div class="text-center">
+
+    <h1 class="mb-4">Welcome</h1>
+
+    <% if (!authenticated) { %>
+
+        <a href="/signup" class="btn btn-primary btn-lg m-2">Sign Up</a>
+        <a href="/login" class="btn btn-success btn-lg m-2">Log In</a>
+
+    <% } else { %>
+
+        <div class="alert alert-info">
+            Hello, <strong><%= name %></strong>
+        </div>
+
+        <a href="/members" class="btn btn-primary m-2">Go to Members</a>
+        <a href="/logout" class="btn btn-danger m-2">Logout</a>
+
+    <% } %>
+
+</div>
+<%- include("templates/footer") %> 

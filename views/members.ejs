@@ -1,0 +1,27 @@
+<%- include('templates/header') %>
+
+<div class="text-center mb-4">
+
+    <h2>Hello, <%= name %></h2>
+
+</div>
+
+<div class="row">
+
+    <% images.forEach(img => { %>
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm">
+
+                <img src="<%= img %>" class="card-img-top">
+
+            </div>
+
+        </div>
+
+    <% }) %>
+
+</div>
+
+<%- include('templates/footer') %>

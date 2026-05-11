@@ -2,7 +2,7 @@ require('./utils.js');
 require('dotenv').config(); 
 const express = require('express');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const {MongoStore} = require('connect-mongo');
 const bcrypt = require('bcrypt');
 const saltRounds = 12;
 
@@ -13,7 +13,7 @@ const mongoSanitizer = require('mongo-sanitizer').default;
 //import mongoSanitizer from 'mongo-sanitizer';
 
 const PORT = process.env.PORT || 3000;
-const expireTime = 24 * 60 * 60 * 1000; //expires after 1 day  (hours * minutes * seconds * millis)
+const expireTime = 1 * 60 * 60 * 1000; //expires after 1 hour  (hours * minutes * seconds * millis)
 
 /* secret information section */
 const mongodb_host = process.env.MONGODB_HOST;
@@ -26,8 +26,11 @@ const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
 const node_session_secret = process.env.NODE_SESSION_SECRET;
 /* END secret section */
 
-const {database} = include('databaseConnection');
-const userCollection = database.db(mongodb_user_database).collection('users');
+// const {database} = include('databaseConnection');
+//const userCollection = database.db(mongodb_user_database).collection('users');
+
+const client = require('./databaseConnection');
+const userCollection = client.db(mongodb_user_database).collection('users');
 
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: false}));
@@ -37,20 +40,31 @@ app.use(mongoSanitizer(
     { replaceWith: '_'}
 ));
 
-var mongoStore = MongoStore.create({
-	mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_session_database}`,
-	crypto: {
-		secret: mongodb_session_secret
-	}
+const mongoStore = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    dbName: mongodb_session_database,
+    crypto: {
+        secret: mongodb_session_secret
+    }
 });
+
 
 app.use(session({ 
     secret: node_session_secret,
 	store: mongoStore, //default is memory store 
 	saveUninitialized: false, 
-	resave: true
-}
-));
+	resave: false,
+    cookie: {
+        maxAge: expireTime
+    }
+}));
+
+app.use((req, res, next) => {
+    res.locals.authenticated = req.session.authenticated;
+    res.locals.user_type = req.session.user_type;
+    res.locals.name = req.session.name;
+    next();
+});
 
 function isValidSession(req) {
     if (req.session.authenticated) {
@@ -76,14 +90,17 @@ function isAdmin(req) {
 }
 
 function adminAuthorization(req, res, next) {
+
     if (!isAdmin(req)) {
+
         res.status(403);
-        res.render("errorMessage", {error: "Not Authorized"});
-        return;
+
+        return res.render("error", {
+            message: "Not Authorized"
+        });
     }
-    else {
-        next();
-    }
+
+    next();
 }
 
 app.get('/nosql-injection', (req,res) => {
@@ -141,133 +158,163 @@ app.post('/nosql-injection', async (req,res) => {
     res.send(`<h1>Hello ${username}</h1>`);
 });
 
+const signupSchema = Joi.object({
+    name: Joi.string().max(50).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().max(50).required()
+});
+
+const loginSchema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().max(50).required()
+});
+
 
 // Routes
 app.get('/', (req, res) => {
-    res.render('index');
+    res.render('home');
 });
 
-app.get('/about', (req,res) => {
-    var color = req.query.color;
-
-    res.render('about', {color: color});
+app.get('/signup', (req, res) => {
+    res.render('signup');
 });
 
-app.get('/cat/:id', (req,res) => {
-    var cat = req.params.id;
+app.post('/signup', async (req, res) => {
 
-    res.render('cat', {cat: cat});
-});
+    const validation = signupSchema.validate(req.body);
 
-app.get('/contact', (req,res) => {
-    var missingEmail = req.query.missing;
-
-    res.render('contact', {missing: missingEmail});
-});
-
-app.post('/submitEmail', (req,res) => {
-    var email = req.body.email;
-    if (!email) {
-        res.redirect('/contact?missing=1');
-    }
-    else {
-        res.render('submitEmail', {email:email});
-    }
-});
-
-app.get('/createUser', (req,res) => {
-    res.render('createUser');
-});
-
-app.post('/submitUser', async (req,res) => {
-    var username = req.body.username;
-    var password = req.body.password;
-
-	const schema = Joi.object(
-		{
-			username: Joi.string().alphanum().max(20).required(),
-			password: Joi.string().max(20).required()
-		});
-	
-	const validationResult = schema.validate({username, password});
-	if (validationResult.error != null) {
-        console.log(validationResult.error);
-        res.redirect("/createUser");
-        return;
+    if (validation.error) {
+        return res.render('error', {
+            message: validation.error.details[0].message
+        });
     }
 
-    var hashedPassword = await bcrypt.hash(password, saltRounds);
-	
-	await userCollection.insertOne({username: username, password: hashedPassword, user_type: 'user'});
-	console.log("Inserted user");
+    const { name, email, password } = req.body;
 
-    res.render('submitUser');
+    const existingUser = await userCollection.findOne({ email });
+
+if (existingUser) {
+    return res.render('error', {
+        message: 'User already exists.'
+    });
+}
+
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    await userCollection.insertOne({
+        name,
+        email,
+        password: hashedPassword,
+        user_type: 'user'
+    });
+
+    req.session.authenticated = true;
+    req.session.name = name;
+    req.session.user_type = 'user';
+
+    res.redirect('/members');
 });
 
 app.get('/login', (req,res) => {
     res.render('login');
 });
 
-app.post('/loggingin', async (req,res) => {
-    var username = req.body.username;
-    var password = req.body.password;
+app.post('/login', async (req, res) => {
 
-	const schema = Joi.string().max(20).required();
-	const validationResult = schema.validate(username);
-	if (validationResult.error != null) {
-        console.log(validationResult.error);
-        res.redirect("/login");
-        return;
-	}
+    const validation = loginSchema.validate(req.body);
 
-	const result = await userCollection.find({username: username}).project({username: 1, password: 1, user_type: 1, _id: 1}).toArray();
-
-	console.log(result);
-	if (result.length != 1) {
-		console.log("user not found");
-		res.redirect("/login");
-		return;
-	}
-	if (await bcrypt.compare(password, result[0].password)) {
-		console.log("correct password");
-		req.session.authenticated = true;
-		req.session.username = username;
-        req.session.user_type = result[0].user_type;
-		req.session.cookie.maxAge = expireTime;
-
-		res.redirect('/loggedIn');
-		return;
-	}
-	else {
-		console.log("incorrect password");
-		res.redirect("/login");
-		return;
-	}
-});
-
-app.use('/loggedin', sessionValidation);
-app.get('/loggedin', (req,res) => {
-    if (!req.session.authenticated) {
-        res.redirect('/login');
-        return;
+    if (validation.error) {
+        return res.render('error', {
+            message: validation.error.details[0].message
+        });
     }
-    res.render('loggedin');
+
+    const { email, password } = req.body;
+
+    const user = await userCollection.findOne({ email });
+
+    if (!user) {
+        return res.render('error', {
+            message: 'User and password not found.'
+        });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if (!validPassword) {
+        return res.render('error', {
+            message: 'User and password not found.'
+        });
+    }
+
+    req.session.authenticated = true;
+    req.session.name = user.name;
+    req.session.user_type = user.user_type;
+
+    res.redirect('/members');
 });
 
-app.get('/loggedin/info', (req,res) => {
-    res.render('loggedin-info');
+app.get('/members', sessionValidation, (req, res) => {
+
+    const images = [
+        '/images/img1.jpg',
+        '/images/img2.jpg',
+        '/images/img3.jpg'
+    ];
+
+    const randomImage = images[Math.floor(Math.random() * images.length)];
+
+    res.render('members', {
+    authenticated: req.session.authenticated,
+    user_type: req.session.user_type,
+    name: req.session.name,
+    images
+});
 });
 
-app.get('/logout', (req,res) => {
-	req.session.destroy();
+app.get('/logout', (req, res) => {
 
-    res.render('loggedout');
+    req.session.destroy();
+
+    res.redirect('/');
 });
 
-app.get('/admin', sessionValidation, adminAuthorization, async (req,res) => {
-    const result = await userCollection.find().project({username: 1, _id: 1}).toArray();
+app.get('/admin', sessionValidation, adminAuthorization, async (req, res) => {
 
-    res.render("admin", {users: result});
+    const users = await userCollection
+        .find()
+        .project({
+            name: 1,
+            email: 1,
+            user_type: 1
+        })
+        .toArray();
+
+    res.render('admin', { users });
+});
+
+app.get('/promote/:email', sessionValidation, adminAuthorization, async (req, res) => {
+
+    const email = req.params.email;
+
+    await userCollection.updateOne(
+        { email: email },
+        { $set: { user_type: 'admin' } }
+    );
+
+    res.redirect('/admin');
+});
+
+app.get('/demote/:email', sessionValidation, adminAuthorization, async (req, res) => {
+
+    const email = req.params.email;
+
+    await userCollection.updateOne(
+        { email: email },
+        { $set: { user_type: 'user' } }
+    );
+
+    res.redirect('/admin');
 });
 
 app.use(express.static(__dirname + "/public"));

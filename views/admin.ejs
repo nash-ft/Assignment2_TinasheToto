@@ -1,9 +1,57 @@
-<%- include("templates/header") %> 
-	<div>Users:</div>
-    <ul>
-        <% let i=0; %>
-		<% for(i=0; i < users.length; i++) { %>
-        <%- include('templates/user', {user: users[i]})  %> 
-        <% } %> 
-    </ul>
-<%- include("templates/footer") %> 
+<%- include('templates/header') %>
+
+<h2 class="mb-4">Admin Dashboard</h2>
+
+<table class="table table-striped table-hover">
+
+    <thead class="table-dark">
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Type</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        <% users.forEach(user => { %>
+
+            <tr>
+                <td><%= user.name %></td>
+                <td><%= user.email %></td>
+                <td>
+                    <span class="badge bg-secondary">
+                        <%= user.user_type %>
+                    </span>
+                </td>
+
+                <td>
+
+                    <% if (user.user_type === 'user') { %>
+
+                        <a class="btn btn-sm btn-success"
+                           href="/promote/<%= user.email %>">
+                           Promote
+                        </a>
+
+                    <% } else { %>
+
+                        <a class="btn btn-sm btn-warning"
+                           href="/demote/<%= user.email %>">
+                           Demote
+                        </a>
+
+                    <% } %>
+
+                </td>
+            </tr>
+
+        <% }) %>
+
+    </tbody>
+
+</table>
+
+
+<%- include('templates/footer') %>

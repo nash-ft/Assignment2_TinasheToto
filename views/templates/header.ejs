@@ -4,6 +4,71 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Assignment 2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 </head>
 <body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+
+    <img src="/images/assignment.png" class="me-2" style="width:32px; height:32px;">
+
+    Assignment 2
+
+     </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+
+            <ul class="navbar-nav ms-auto">
+
+                <!-- Home -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+
+                <% if (authenticated) { %>
+
+                    <!-- Members -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/members">Members</a>
+                    </li>
+
+                    <!-- Admin (only show if admin) -->
+                    <% if (user_type === 'admin') { %>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning" href="/admin">Admin</a>
+                        </li>
+                    <% } %>
+
+                    <!-- Logout -->
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="/logout">Logout</a>
+                    </li>
+
+                <% } else { %>
+
+                    <!-- If NOT logged in -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Login</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/signup">Sign Up</a>
+                    </li>
+
+                <% } %>
+
+            </ul>
+
+        </div>
+
+    </div>
+</nav>
+
+<div class="container mt-4">
